@@ -3,6 +3,9 @@ package domain;
 import java.net.Socket;
 import java.sql.Time;
 
+/**
+ * a simple immutable object that contains data about a GPS update.
+ */
 public class GpsRecord
 {
     /**

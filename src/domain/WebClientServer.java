@@ -23,6 +23,9 @@ import org.json.JSONObject;
  */
 public class WebClientServer extends WebSocketServer implements GpsRecordManager.GpsUpdateListener
 {
+    /**
+     * keys in JSON objects that are sent to the web clients.
+     */
     public static final String JSON_KEY_ID        = "id";
     public static final String JSON_KEY_LAT       = "lat";
     public static final String JSON_KEY_LON       = "lon";

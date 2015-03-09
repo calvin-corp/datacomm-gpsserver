@@ -4,8 +4,10 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * the GPSRecordManager class is used to take care of GPS updates from android
- *   clients.
+ * the GPSRecordManager class is used to take care of GPS updates, and notifying
+ *   all registered observers.
+ *
+ * @author Eric Tsang
  */
 public class GpsRecordManager
 {
