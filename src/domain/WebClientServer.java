@@ -68,18 +68,20 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     ////////////////////////////////////
 
     /**
-     * adds the connection to the set of connected connections.
+     * adds the connection to the set of connected connections, and sends them
+     *   all pending insertions, because the web client can get the the previous
+     *   records from the database.
      */
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake)
     {
         clients.add(conn);
 
-        // send WebClient data of all pending insertions
+        // send new WebClient all pending insertions
         List<GpsRecord> records = mongoDbClient.getPendingRecords();
         for(GpsRecord record : records)
         {
-            onGpsUpdate(record);
+            conn.send(toWebRecord(record).toString());
         }
     }
 
@@ -104,6 +106,31 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
         // do nothing; errors shouldn't occur!
     }
 
+    ///////////////////////
+    // private interface //
+    ///////////////////////
+
+    /**
+     * converts a GpsRecord into JSON form that the web client can consume.
+     *
+     * @param  gpsRecord GpSrecord object to convert.
+     *
+     * @return a GpsRecord in JSON form that the web client can consume.
+     */
+    public static JSONObject toWebRecord(GpsRecord gpsRecord)
+    {
+        JSONObject json = new JSONObject();
+        json.put(JSON_KEY_ID, gpsRecord.getDeviceId());
+        json.put(JSON_KEY_LAT, gpsRecord.getLat());
+        json.put(JSON_KEY_LON, gpsRecord.getLng());
+        json.put(JSON_KEY_IP, gpsRecord.getDeviceIp());
+        json.put(JSON_KEY_SPEED, gpsRecord.getSpeed());
+        json.put(JSON_KEY_ALTITUDE, gpsRecord.getAltitude());
+        json.put(JSON_KEY_TIMESTAMP, gpsRecord.getSamplingTime());
+
+        return json;
+    }
+
     ////////////////////////////////////////
     // GpsRecordManager.GpsUpdateListener //
     ////////////////////////////////////////
@@ -115,20 +142,10 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     @Override
     public void onGpsUpdate(GpsRecord gpsRecord)
     {
-        // create the json message to send to the web clients
-        JSONObject json = new JSONObject();
-        json.put(JSON_KEY_ID, gpsRecord.getDeviceId());
-        json.put(JSON_KEY_LAT, gpsRecord.getLat());
-        json.put(JSON_KEY_LON, gpsRecord.getLng());
-        json.put(JSON_KEY_IP, gpsRecord.getDeviceIp());
-        json.put(JSON_KEY_SPEED, gpsRecord.getSpeed());
-        json.put(JSON_KEY_ALTITUDE, gpsRecord.getAltitude());
-        json.put(JSON_KEY_TIMESTAMP, gpsRecord.getSamplingTime());
-
         // send messages to clients
         for(WebSocket client : clients)
         {
-            client.send(json.toString());
+            client.send(toWebRecord(gpsRecord).toString());
         }
     }
 }

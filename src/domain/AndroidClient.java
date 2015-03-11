@@ -38,7 +38,15 @@ public class AndroidClient implements Client
      */
     private String androidId;
 
+    /**
+     * socket used to communicate with the remote android device. here, we're
+     *   only interested in it because we need to put it into the gpsRecords.
+     */
     private Socket socket;
+
+    //////////////////
+    // constructors //
+    //////////////////
 
     /**
      * instantiates a new AndroidClient object which is used to communicate and
@@ -52,6 +60,10 @@ public class AndroidClient implements Client
         this.socket = socket;
         this.gpsRecordsManager = gpsRecordsManager;
     }
+
+    //////////////////////
+    // public interface //
+    //////////////////////
 
     /**
      * invoked when the connection to the Android client is terminated.
@@ -87,15 +99,34 @@ public class AndroidClient implements Client
         else
         {
             // message is GPS update; update the database
-            GpsRecord gpsRecord = new GpsRecord(
-                    androidId,
-                    socket,
-                    json.getLong(JSON_KEY_TIMESTAMP),
-                    json.getDouble(JSON_KEY_LAT),
-                    json.getDouble(JSON_KEY_LON),
-                    json.getDouble(JSON_KEY_ALTITUDE),
-                    json.getDouble(JSON_KEY_SPEED));
+            GpsRecord gpsRecord = fromAndroidRecord(this,json);
             gpsRecordsManager.dispatchGpsUpdate(gpsRecord);
         }
+    }
+
+    ///////////////////////
+    // private interface //
+    ///////////////////////
+
+    /**
+     * converts a JSON record received from the remote android device into a
+     *   GpsRecord.
+     *
+     * @param  client the AndroidClient requesting the conversion. will be
+     *   getting the id, and socket fields from this object.
+     * @param  json JSON object received from the remote client.
+     *
+     * @return a GpsRecord instance that encapsulates the data of a GPS update.
+     */
+    private static GpsRecord fromAndroidRecord(AndroidClient client, JSONObject json)
+    {
+        return new GpsRecord(
+                client.androidId,
+                client.socket,
+                json.getLong(JSON_KEY_TIMESTAMP),
+                json.getDouble(JSON_KEY_LAT),
+                json.getDouble(JSON_KEY_LON),
+                json.getDouble(JSON_KEY_ALTITUDE),
+                json.getDouble(JSON_KEY_SPEED));
     }
 }
