@@ -37,11 +37,10 @@ public class Main
         try
         {
             gpsRecords = new GpsRecordManager();
-            androidSvr = new AndroidClientServer(androidServerPort,gpsRecords);
-            webSockSvr = new WebClientServer(websocketServerPort,gpsRecords);
-
-            // connect to the Mongo DB, and 
             mongoDBClnt = new MongoDBClient();
+            androidSvr = new AndroidClientServer(androidServerPort,gpsRecords);
+            webSockSvr = new WebClientServer(websocketServerPort,gpsRecords,
+                    mongoDBClnt);
             gpsRecords.registerListener(mongoDBClnt);
         }
         catch (IOException e)

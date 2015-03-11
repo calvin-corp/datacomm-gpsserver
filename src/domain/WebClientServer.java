@@ -3,6 +3,7 @@ package domain;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.java_websocket.WebSocket;
@@ -40,6 +41,12 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     private Set<WebSocket> clients;
 
     /**
+     * MongoDB client that we can get pending insertions from when a new
+     *   connection is established.
+     */
+    private MongoDBClient mongoDbClient;
+
+    /**
      * constructor instantiates a web client server.
      *
      * @param port port to listen for connections on.
@@ -48,10 +55,11 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
      *
      * @throws UnknownHostException
      */
-    public WebClientServer(int port, GpsRecordManager gpsRecordsManager) throws UnknownHostException
+    public WebClientServer(int port, GpsRecordManager gpsRecordsManager, MongoDBClient mongoDbClient) throws UnknownHostException
     {
         super(new InetSocketAddress(port));
         this.clients = new LinkedHashSet<>();
+        this.mongoDbClient = mongoDbClient;
         gpsRecordsManager.registerListener(this);
     }
 
@@ -66,6 +74,13 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     public void onOpen(WebSocket conn, ClientHandshake handshake)
     {
         clients.add(conn);
+
+        // send WebClient data of all pending insertions
+        List<GpsRecord> records = mongoDbClient.getPendingRecords();
+        for(GpsRecord record : records)
+        {
+            onGpsUpdate(record);
+        }
     }
 
     /**

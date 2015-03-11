@@ -30,7 +30,7 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
     private DB mongoDb;
     private Timer timer;
     private UpdateDbTask updateDbTask;
-    private List<BasicDBObject> pendingRecords;
+    private List<GpsRecord> pendingRecords;
 
     public MongoDBClient()
     {
@@ -39,7 +39,7 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
         mongoDb = null;
         timer = new Timer(true);
         pendingRecords = Collections.synchronizedList(
-                new ArrayList<BasicDBObject>());
+                new ArrayList<GpsRecord>());
         updateDbTask = new UpdateDbTask();
 
         timer.scheduleAtFixedRate(updateDbTask, 1000, 30000);
@@ -73,6 +73,29 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
         return mongoDb != null;
     }
 
+    public List<GpsRecord> getPendingRecords()
+    {
+        return pendingRecords;
+    }
+
+    ///////////////////////
+    // private interface //
+    ///////////////////////
+
+    private BasicDBObject toDbRecord(GpsRecord gpsRecord)
+    {
+        BasicDBObject record = new BasicDBObject();
+        record.put(JSON_KEY_ID, gpsRecord.getDeviceId());
+        record.put(JSON_KEY_LAT, gpsRecord.getLat());
+        record.put(JSON_KEY_LON, gpsRecord.getLng());
+        record.put(JSON_KEY_IP, gpsRecord.getDeviceIp());
+        record.put(JSON_KEY_SPEED, gpsRecord.getSpeed());
+        record.put(JSON_KEY_ALTITUDE, gpsRecord.getAltitude());
+        record.put(JSON_KEY_TIMESTAMP, gpsRecord.getSamplingTime());
+
+        return record;
+    }
+
     ////////////////////////////////////////
     // GpsRecordManager.GpsUpdateListener //
     ////////////////////////////////////////
@@ -86,18 +109,8 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
     {
         if(isConnected())
         {
-            // create the database record
-            BasicDBObject record = new BasicDBObject();
-            record.put(JSON_KEY_ID, gpsRecord.getDeviceId());
-            record.put(JSON_KEY_LAT, gpsRecord.getLat());
-            record.put(JSON_KEY_LON, gpsRecord.getLng());
-            record.put(JSON_KEY_IP, gpsRecord.getDeviceIp());
-            record.put(JSON_KEY_SPEED, gpsRecord.getSpeed());
-            record.put(JSON_KEY_ALTITUDE, gpsRecord.getAltitude());
-            record.put(JSON_KEY_TIMESTAMP, gpsRecord.getSamplingTime());
-
-            // insert record into database
-            pendingRecords.add(record);
+            // insert record into pending records list
+            pendingRecords.add(gpsRecord);
         }
     }
 
@@ -111,14 +124,23 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
             {
                 System.out.println("Writing to database...");
 
-                // get the database collection
-                DBCollection locations = mongoDb.getCollection("locations");
-
-                // insert pending records into the database
-                locations.insert(pendingRecords);
+                // copy pending records to array, and prepare them for insertion
+                GpsRecord[] gpsRecords = new GpsRecord[pendingRecords.size()];
+                pendingRecords.toArray(gpsRecords);
+                ArrayList<BasicDBObject> dbRecords = new ArrayList<>();
+                for(GpsRecord gpsRecord : gpsRecords)
+                {
+                    dbRecords.add(toDbRecord(gpsRecord));
+                }
 
                 // clear pending records so they won't be inserted again
                 pendingRecords.clear();
+
+                // get the database collection
+                DBCollection locations = mongoDb.getCollection("locations");
+
+                // insert converted pending records into the database
+                locations.insert(dbRecords);
             }
         }
     }
