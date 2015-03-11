@@ -46,6 +46,10 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
      */
     private MongoDBClient mongoDbClient;
 
+    //////////////////
+    // constructors //
+    //////////////////
+
     /**
      * constructor instantiates a web client server.
      *
