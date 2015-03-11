@@ -63,7 +63,7 @@ public class AndroidClientServer extends TCPServer
     protected void onOpen(Socket conn)
     {
         System.out.println("socket "+conn.getRemoteSocketAddress()+" has connected");
-        clients.put(conn,new AndroidClient(gpsRecordsManager));
+        clients.put(conn,new AndroidClient(conn,gpsRecordsManager));
     }
 
     /**

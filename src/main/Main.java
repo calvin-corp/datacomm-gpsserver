@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import domain.AndroidClientServer;
 import domain.GpsRecordManager;
+import domain.MongoDBClient;
 import domain.WebClientServer;
 
 public class Main
@@ -18,6 +19,7 @@ public class Main
         AndroidClientServer androidSvr;
         WebClientServer webSockSvr;
         GpsRecordManager gpsRecords;
+        MongoDBClient mongoDBClnt;
 
         // parse command line arguments
         try
@@ -37,6 +39,10 @@ public class Main
             gpsRecords = new GpsRecordManager();
             androidSvr = new AndroidClientServer(androidServerPort,gpsRecords);
             webSockSvr = new WebClientServer(websocketServerPort,gpsRecords);
+
+            // connect to the Mongo DB, and 
+            mongoDBClnt = new MongoDBClient();
+            gpsRecords.registerListener(mongoDBClnt);
         }
         catch (IOException e)
         {
@@ -46,52 +52,12 @@ public class Main
         // start the servers
         androidSvr.start();
         webSockSvr.start();
+        mongoDBClnt.connect();
 
         // end the program when input is received
         System.in.read();
         androidSvr.stop();
         webSockSvr.stop();
+        mongoDBClnt.disconnect();
     }
 }
-//
-//    public static class MyTCPServer extends TCPServer
-//    {
-//
-//        public MyTCPServer(int serverPort) throws IOException
-//        {
-//            super(serverPort);
-//        }
-//
-//        @Override
-//        protected void onClose(Socket conn, boolean remote)
-//        {
-//            SocketAddress addr = conn.getRemoteSocketAddress();
-//            System.out.println("client "+addr+" disconnected "+(remote?"by remote":"by server")+".");
-//            
-//        }
-//
-//        @Override
-//        protected void onMessage(Socket conn, String msg)
-//        {
-//            SocketAddress addr = conn.getRemoteSocketAddress();
-//            System.out.println(addr+": "+msg);
-////            stop();
-//
-//            try
-//            {
-//                DataOutputStream os = new DataOutputStream(conn.getOutputStream());
-//                os.writeUTF("SEE YA LATER");
-//            }
-//            catch (IOException e)
-//            {
-//                e.printStackTrace();
-//            }
-//        }
-//
-//        @Override
-//        protected void onOpen(Socket conn)
-//        {
-//            SocketAddress addr = conn.getRemoteSocketAddress();
-//            System.out.println("client "+addr+" has connected.");
-//        }
-//    }

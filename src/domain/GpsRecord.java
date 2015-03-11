@@ -1,7 +1,6 @@
 package domain;
 
 import java.net.Socket;
-import java.sql.Time;
 
 /**
  * a simple immutable object that contains data about a GPS update.
@@ -11,7 +10,7 @@ public class GpsRecord
     /**
      * ID of the device that sent the GPS update.
      */
-    private final long deviceId;
+    private final String deviceId;
 
     /**
      * IP address that was used to send the server the GPS update.
@@ -22,7 +21,7 @@ public class GpsRecord
      * time that the latitude and longitude of the device was recorded in Linux
      *   epoch time.
      */
-    private final Time samplingTime;
+    private final long samplingTime;
 
     /**
      * latitude of the device at samplingTime in degrees.
@@ -55,7 +54,7 @@ public class GpsRecord
      * @param lat latitude of the device at samplingTime.
      * @param lng longitude of the device at samplingTime.
      */
-    public GpsRecord(long deviceId, Socket deviceIp, Time samplingTime,
+    public GpsRecord(String deviceId, Socket deviceIp, long samplingTime,
             double lat, double lng, double altitude, double speed)
     {
         this.deviceId = deviceId;
@@ -67,7 +66,7 @@ public class GpsRecord
         this.speed = speed;
     }
 
-    public long getDeviceId()
+    public String getDeviceId()
     {
         return deviceId;
     }
@@ -79,7 +78,7 @@ public class GpsRecord
 
     public long getSamplingTime()
     {
-        return samplingTime.getTime()/1000;
+        return samplingTime;
     }
 
     public double getLat()

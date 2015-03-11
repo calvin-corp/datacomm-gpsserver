@@ -1,5 +1,9 @@
 package domain;
 
+import java.net.Socket;
+
+import org.json.JSONObject;
+
 import lib.Client;
 
 /**
@@ -14,9 +18,27 @@ import lib.Client;
 public class AndroidClient implements Client
 {
     /**
+     * keys in JSON objects that are received from the android clients.
+     */
+    public static final String JSON_KEY_ID        = "id";
+    public static final String JSON_KEY_LAT       = "lat";
+    public static final String JSON_KEY_LON       = "lon";
+    public static final String JSON_KEY_SPEED     = "speed";
+    public static final String JSON_KEY_ALTITUDE  = "altitude";
+    public static final String JSON_KEY_TIMESTAMP = "timestamp";
+
+    /**
      * reference to a gpsRecordsManager to send GPS updates to.
      */
     private GpsRecordManager gpsRecordsManager;
+
+    /**
+     * contains the mac address of the android device used to uniquely identify
+     *   it on the server.
+     */
+    private String androidId;
+
+    private Socket socket;
 
     /**
      * instantiates a new AndroidClient object which is used to communicate and
@@ -25,8 +47,9 @@ public class AndroidClient implements Client
      * @param  gpsRecordsManager reference to a gpsRecordsManager to send GPS
      *   updates to.
      */
-    public AndroidClient(GpsRecordManager gpsRecordsManager)
+    public AndroidClient(Socket socket, GpsRecordManager gpsRecordsManager)
     {
+        this.socket = socket;
         this.gpsRecordsManager = gpsRecordsManager;
     }
 
@@ -53,11 +76,26 @@ public class AndroidClient implements Client
     @Override
     public void onMessage(String msg)
     {
-        // TODO: parse messages from Android client, and save it if it's
-        //       metadata, or send the gps update to the GpsRecordManager
-        //       otherwise.
+        JSONObject json = new JSONObject(msg);
 
-        // GpsRecord gpsRecord = new GpsRecord();
-        // gpsRecordsManager.dispatchGpsUpdate(gpsRecord);
+        // parse message from client
+        if(json.has(JSON_KEY_ID))
+        {
+            // message is data about device; save the data...
+            androidId = json.getString(JSON_KEY_ID);
+        }
+        else
+        {
+            // message is GPS update; update the database
+            GpsRecord gpsRecord = new GpsRecord(
+                    androidId,
+                    socket,
+                    json.getLong(JSON_KEY_TIMESTAMP),
+                    json.getDouble(JSON_KEY_LAT),
+                    json.getDouble(JSON_KEY_LON),
+                    json.getDouble(JSON_KEY_ALTITUDE),
+                    json.getDouble(JSON_KEY_SPEED));
+            gpsRecordsManager.dispatchGpsUpdate(gpsRecord);
+        }
     }
 }
