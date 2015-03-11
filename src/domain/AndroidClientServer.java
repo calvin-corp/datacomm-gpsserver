@@ -62,6 +62,7 @@ public class AndroidClientServer extends TCPServer
     @Override
     protected void onOpen(Socket conn)
     {
+        System.out.println("socket "+conn.getRemoteSocketAddress()+" has connected");
         clients.put(conn,new AndroidClient(gpsRecordsManager));
     }
 
@@ -76,6 +77,7 @@ public class AndroidClientServer extends TCPServer
     @Override
     protected void onMessage(Socket conn, String msg)
     {
+        System.out.println(conn.getRemoteSocketAddress()+": "+msg);
         clients.get(conn).onMessage(msg);
     }
 
@@ -91,6 +93,7 @@ public class AndroidClientServer extends TCPServer
     @Override
     protected void onClose(Socket conn, boolean remote)
     {
+        System.out.println("socket "+conn.getRemoteSocketAddress()+" has been disconnected by "+(remote?"remote":"local")+" host");
         clients.get(conn).onClose(remote);
         clients.remove(conn);
     }

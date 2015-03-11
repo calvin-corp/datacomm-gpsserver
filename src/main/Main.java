@@ -22,8 +22,8 @@ public class Main
         // parse command line arguments
         try
         {
-            androidServerPort = Integer.valueOf(args[0]);
-            websocketServerPort = Integer.valueOf(args[1]);
+            androidServerPort = 7000;//Integer.valueOf(args[0]);
+            websocketServerPort = 7001;//Integer.valueOf(args[1]);
         }
         catch(Exception e)
         {
