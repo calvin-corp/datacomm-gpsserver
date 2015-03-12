@@ -1,11 +1,5 @@
 package domain;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -26,36 +20,12 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
     public static final String JSON_KEY_TIMESTAMP = "timestamp";
 
     /**
-     * time interval between insertions after the initial insertion of
-     *   pendingRecords into the database.
-     */
-    public static final long DB_INSERT_INTERVAL = 60000;
-
-    /**
-     * initial delay before the first batch of pendingRecords are inserted into
-     *   the database. it must be non-zero, as it takes time for the application
-     *   to initially connect with the database.
-     */
-    public static final long DB_INSERT_DELAY    = 60000;
-
-    /**
      * database objects...
      */
     private MongoClientURI uri;
     private MongoClient client;
     private DB mongoDb;
-
-    /**
-     * Timer used to schedule the instance's UpdateDbTask which inserts the
-     *   pendingRecords at fixed intervals.
-     */
-    private Timer timer;
-
-    /**
-     * list of pending GpsRecords to insert into the database, so that we don't
-     *   pound the database with insertion requests.
-     */
-    private List<GpsRecord> pendingRecords;
+    private DBCollection locations;
 
     //////////////////
     // constructors //
@@ -71,14 +41,7 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
                 +"mongolab.com:33087/locations");
         client = null;
         mongoDb = null;
-        timer = new Timer(true);
-        pendingRecords = Collections.synchronizedList(
-                new ArrayList<GpsRecord>());
-
-        // schedule the updateDbTask to regularly insert all pending records
-        // into the database at fixed intervals; the UpdateDbTask will
-        // reschedule itself after its initial execution.
-        timer.schedule(new UpdateDbTask(), DB_INSERT_DELAY);
+        locations = null;
     }
 
     //////////////////////
@@ -95,6 +58,7 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
         {
             client = new MongoClient(uri);
             mongoDb = client.getDB(uri.getDatabase());
+            locations = mongoDb.getCollection("locations");
         }
     }
 
@@ -107,6 +71,7 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
         {
             client.close();
             mongoDb = null;
+            locations = null;
         }
     }
 
@@ -118,17 +83,6 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
     public boolean isConnected()
     {
         return mongoDb != null;
-    }
-
-    /**
-     * returns a list of records that are being buffered, and have yet to be
-     *   inserted into the database.
-     *
-     * @return a list of records that have yet to be inserted into the database.
-     */
-    public List<GpsRecord> getPendingRecords()
-    {
-        return pendingRecords;
     }
 
     ///////////////////////
@@ -170,65 +124,8 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
     {
         if(isConnected())
         {
-            // insert record into pending records list
-            pendingRecords.add(gpsRecord);
-        }
-    }
-
-    /////////////////////////////////
-    // UpdateDbTask implementation //
-    /////////////////////////////////
-
-    /**
-     * the UpdateDbTask is scheduled once in the beginning to insert all pending
-     *   records into the database. after it is scheduled once, it will
-     *   reschedule itself forever. this is done in case the timer tasks takes
-     *   unusually longer to complete execution, and then run again while the
-     *   first task is still trying to complete.
-     *
-     * @author Eric Tsang
-     *
-     */
-    private class UpdateDbTask extends TimerTask
-    {
-
-        /**
-         * the run method inserts pending records into the database, and
-         *   reschedules a new instance of itself.
-         */
-        @Override
-        public void run()
-        {
-            if(pendingRecords.size() > 0)
-            {
-                System.out.println("Writing to database...");
-
-                // copy pending records to array, and prepare them for insertion
-                GpsRecord[] gpsRecords = new GpsRecord[pendingRecords.size()];
-                pendingRecords.toArray(gpsRecords);
-                ArrayList<BasicDBObject> dbRecords = new ArrayList<>();
-                for(GpsRecord gpsRecord : gpsRecords)
-                {
-                    dbRecords.add(toDbRecord(gpsRecord));
-                }
-
-                // clear pending records so they won't be inserted again
-                pendingRecords.clear();
-
-                // get the database collection
-                DBCollection locations = mongoDb.getCollection("locations");
-
-                // insert converted pending records into the database
-                locations.insert(dbRecords);
-
-                // reschedule for the future
-                timer.schedule(new UpdateDbTask(), DB_INSERT_INTERVAL);
-
-                // free some memory~
-                timer.purge();
-
-                System.out.println("Database operation complete...");
-            }
+            // insert record into database
+            locations.insert(toDbRecord(gpsRecord));
         }
     }
 }
