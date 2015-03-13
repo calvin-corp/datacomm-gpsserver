@@ -74,6 +74,11 @@ public class AndroidClient implements Client
     @Override
     public void onClose(boolean remote)
     {
+        if (androidId != null)
+        {
+            gpsRecordsManager.dispatchDisconnection(androidId);
+        }
+        
         gpsRecordsManager = null;
     }
 
@@ -95,6 +100,7 @@ public class AndroidClient implements Client
         {
             // message is data about device; save the data...
             androidId = json.getString(JSON_KEY_ID);
+            gpsRecordsManager.dispatchConnection(androidId);
         }
         else
         {
