@@ -71,6 +71,7 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake)
     {
+        System.out.println("WebSocket "+conn+" has connected");
         clients.add(conn);
     }
 
@@ -80,6 +81,7 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote)
     {
+        System.out.println("WebSocket "+conn+" has disconnected");
         clients.remove(conn);
     }
 
