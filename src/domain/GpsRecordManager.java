@@ -28,6 +28,8 @@ public class GpsRecordManager
     public interface GpsUpdateListener
     {
         public void onGpsUpdate(GpsRecord gpsRecord);
+        public void onClientConnected(String clientId);
+        public void onClientDisconnected(String clientId);
     }
 
     /**
@@ -63,6 +65,32 @@ public class GpsRecordManager
         for (GpsUpdateListener listsner : registeredListeners)
         {
             listsner.onGpsUpdate(gpsRecord);
+        }
+    }
+    
+    /**
+     * dispatches an Android Client connection to all registered listeners
+     * 
+     * @param clientId the id of the client that has connected
+     */
+    public void dispatchConnection(String clientId)
+    {
+        for (GpsUpdateListener listsner : registeredListeners)
+        {
+            listsner.onClientConnected(clientId);
+        }
+    }
+    
+    /**
+     * dispatches an Android Client disconnection to all registered listeners
+     * 
+     * @param clientId the id of the client that has disconnected
+     */
+    public void dispatchDisconnection(String clientId)
+    {
+        for (GpsUpdateListener listsner : registeredListeners)
+        {
+            listsner.onClientDisconnected(clientId);
         }
     }
 }

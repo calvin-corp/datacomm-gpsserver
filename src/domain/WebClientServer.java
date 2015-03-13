@@ -2,7 +2,9 @@ package domain;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.TreeSet;
 import java.util.Set;
 
 import org.java_websocket.WebSocket;
@@ -26,6 +28,8 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     /**
      * keys in JSON objects that are sent to the web clients.
      */
+    public static final String JSON_MESSAGE_TYPE  = "msgType";
+    public static final String JSON_KEY_DEVICES   = "devices";
     public static final String JSON_KEY_ID        = "id";
     public static final String JSON_KEY_LAT       = "lat";
     public static final String JSON_KEY_LON       = "lon";
@@ -38,6 +42,7 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
      * set containing all of the connected connections to web clients.
      */
     private Set<WebSocket> clients;
+    private Set<String> trackedDevices;
 
     //////////////////
     // constructors //
@@ -56,6 +61,7 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     {
         super(new InetSocketAddress(port));
         this.clients = new LinkedHashSet<>();
+        this.trackedDevices = new TreeSet<String>();
         gpsRecordsManager.registerListener(this);
     }
 
@@ -73,6 +79,7 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     {
         System.out.println("WebSocket "+conn+" has connected");
         clients.add(conn);
+        sendLiveDevices(conn);
     }
 
     /**
@@ -100,7 +107,7 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     ///////////////////////
     // private interface //
     ///////////////////////
-
+    
     /**
      * converts a GpsRecord into JSON form that the web client can consume.
      *
@@ -122,6 +129,31 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
         return json;
     }
 
+    /**
+     * send the list of currently live tracked devices to the web client
+     * 
+     * @param client the newly connected web client.
+     */
+    private void sendLiveDevices(WebSocket client)
+    {
+        // Create an array from the existing set of clients
+        String[] liveDevices = new String[trackedDevices.size()];
+        Iterator<String> itr = trackedDevices.iterator();
+        
+        for (int i = 0; itr.hasNext(); i++)
+        {
+            liveDevices[i] = itr.next();
+        }
+        
+        // Construct JSON Object to send
+        JSONObject json = new JSONObject();
+        json.put(JSON_MESSAGE_TYPE, "setup");
+        json.put(JSON_KEY_DEVICES, liveDevices);
+        
+        // Send the JSON to the new connection
+        client.send(json.toString());
+    }
+    
     ////////////////////////////////////////
     // GpsRecordManager.GpsUpdateListener //
     ////////////////////////////////////////
@@ -137,6 +169,53 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
         for(WebSocket client : clients)
         {
             client.send(toWebRecord(gpsRecord).toString());
+        }
+    }
+    
+    /**
+     * invoked when Android Clients connect. Forwards message to webclients.
+     */
+    @Override
+    public void onClientConnected(String clientId)
+    {
+        // Save device ID
+        trackedDevices.add(clientId);
+        
+        // Build JSON message to send to web clients
+        JSONObject json = new JSONObject();
+        json.put(JSON_MESSAGE_TYPE, "connected");
+        json.put(JSON_KEY_ID, clientId);
+        String message = json.toString();
+        
+        // send messages to clients
+        for(WebSocket client : clients)
+        {
+            client.send(message);
+        }
+    }
+    
+    /**
+     * invoked when Android Clients disconnect. Forwards message to webclients.
+     */
+    @Override
+    public void onClientDisconnected(String clientId)
+    {
+        if (clientId == null)
+            return;
+        
+        // Remove device ID
+        trackedDevices.remove(clientId);
+        
+        // Build JSON message to send to web clients
+        JSONObject json = new JSONObject();
+        json.put(JSON_MESSAGE_TYPE, "disconnected");
+        json.put(JSON_KEY_ID, clientId);
+        String message = json.toString();
+        
+        // send messages to clients
+        for(WebSocket client : clients)
+        {
+            client.send(message);
         }
     }
 }

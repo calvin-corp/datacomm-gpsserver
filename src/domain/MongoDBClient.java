@@ -128,4 +128,16 @@ public class MongoDBClient implements GpsRecordManager.GpsUpdateListener
             locations.insert(toDbRecord(gpsRecord));
         }
     }
+    
+    /**
+     * invoked when Android Clients connect. Not needed by MongoDBClient.
+     */
+    @Override
+    public void onClientConnected(String clientId){}
+    
+    /**
+     * invoked when Android Clients disconnect. Not needed by MongoDBClient.
+     */
+    @Override
+    public void onClientDisconnected(String clientId){}
 }

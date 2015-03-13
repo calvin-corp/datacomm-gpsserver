@@ -42,7 +42,7 @@ public class GpsRecord
      * speed of the device at samplingTime in meters per second.
      */
     private final double speed;
-
+    
     /**
      * instantiates a new GPS record object.
      *
@@ -65,7 +65,7 @@ public class GpsRecord
         this.altitude = altitude;
         this.speed = speed;
     }
-
+    
     public String getDeviceId()
     {
         return deviceId;
