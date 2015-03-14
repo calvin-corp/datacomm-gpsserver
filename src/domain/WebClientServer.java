@@ -96,6 +96,7 @@ public class WebClientServer extends WebSocketServer implements GpsRecordManager
     public void onMessage(WebSocket conn, String msg)
     {
         // do nothing; should not receive messages!
+        System.out.println("WebSocket "+conn+": "+msg);
     }
 
     @Override
